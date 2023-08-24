@@ -55,12 +55,10 @@ pub type Result<T> = std::result::Result<T, Error>;
 /// Restructure a key inside a mapping so that if it's dotted it will be inserted
 /// to submap.
 fn restructure_key(m: &mut serde_yaml::Mapping, k: &str) -> Result<()> {
-    println!("trying to restructure key: {k}");
     use serde_yaml::Value;
     if let Some((prefix, suffix)) = k.split_once('.') {
         if prefix.is_empty() || suffix.is_empty() {
             // Do nothing if we can't have both a prefix and a suffix
-            println!("prefix and suffix are empty, done");
             return Ok(());
         }
         let val = m.remove(&k).unwrap();
@@ -70,7 +68,6 @@ fn restructure_key(m: &mut serde_yaml::Mapping, k: &str) -> Result<()> {
                      Value::Mapping(serde_yaml::Mapping::new()));
 
         }
-        println!("{prefix}, {suffix} -> {:?}", val);
         let inner = m.get_mut(prefix)
             .unwrap()
             .as_mapping_mut()
