@@ -10,7 +10,10 @@ keywords = ["yaml"]
 
 [dependencies]
 serde_yaml = "0.9"
-thiserror = "1.0"
+thiserror = "1"
+
+[dev-dependencies]
+pretty_assertions = "1"
 
 [lib]
 path = "src/lib.rs"
