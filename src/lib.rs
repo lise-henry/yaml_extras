@@ -43,7 +43,8 @@
 
 mod error;
 mod restructure;
+mod document;
 
 pub use restructure::restructure_from_str;
 pub use restructure::restructure_map;
-
+pub use document::document;
