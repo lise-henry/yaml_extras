@@ -1,6 +1,6 @@
 [package]
 name = "yaml_extras"
-version = "0.1.0"
+version = "0.1.1"
 description = "Misc yaml-related utility functions"
 edition = "2021"
 authors = ["Liz Henry <liz.henry@ouvaton.org>"]
