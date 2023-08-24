@@ -19,8 +19,8 @@ fn restructure_key(m: &mut serde_yaml::Mapping, k: &str) -> Result<()> {
     if let Some((prefix, suffix)) = k.split_once('.') {
         if prefix.is_empty() || suffix.is_empty() {
             // Do nothing if we can't have both a prefix and a suffix
-            return Ok(());
             println!("prefix and suffix are empty, done");
+            return Ok(());
         }
         let val = m.remove(&k).unwrap();
 
@@ -54,11 +54,16 @@ fn restructure_key(m: &mut serde_yaml::Mapping, k: &str) -> Result<()> {
 ///         baz: true
 /// ```
 ///
+/// # Arguments
+///
+/// * value: a value obtained from serde_yaml; should be a Mapping.
+/// * recursive: set to `true` to apply recursively to all values inside the map,
+///   with `false` it will only be applied for keys at top-level
 ///
 /// # Example
 ///
 /// 
-pub fn restructure_map(value: &mut serde_yaml::Value) -> Result<()> {
+pub fn restructure_map(value: &mut serde_yaml::Value, recursive: bool) -> Result<()> {
     use serde_yaml::Value;
     let m = value.as_mapping_mut()
         .ok_or(Error::Restructure("not a mapping".into()))?;
@@ -82,13 +87,26 @@ pub fn restructure_map(value: &mut serde_yaml::Value) -> Result<()> {
         restructure_key(m, &k)?;
     }
 
+    if recursive {
+        let map_keys: Vec<String> = m.iter()
+            .filter(|(k, v)| k.is_string() && v.is_mapping())
+            .map(|(k, _)| k.as_str().unwrap().to_owned())
+            .collect();
+        for k in map_keys {
+            restructure_map (m.get_mut(&k)
+                             .unwrap(),
+                             true)?;
+            
+        }
+    }
+
     Ok(())
 }
 
 /// Deserialize the string, then restructure it
-pub fn restructure_from_str(s: &str) -> Result<serde_yaml::Value> {
+pub fn restructure_from_str(s: &str, recursive: bool) -> Result<serde_yaml::Value> {
     let mut value = serde_yaml::from_str(s)?;
-    restructure_map(&mut value)?;
+    restructure_map(&mut value, recursive)?;
 
     Ok(value)
 }
@@ -110,10 +128,16 @@ foo:
         let s2 = r#"
 foo.bar.baz: true
 "#;
-        let v1: Value = serde_yaml::from_str(s1).unwrap();
+        let mut v1: Value = serde_yaml::from_str(s1).unwrap();
         let mut v2: Value = serde_yaml::from_str(s2).unwrap();
-        restructure_map(&mut v2).unwrap();
+        restructure_map(&mut v2, false).unwrap();
+        assert_eq!(v1, v2);
 
+        v2 = serde_yaml::from_str(s2).unwrap();
+        restructure_map(&mut v2, true).unwrap();
+        assert_eq!(v1, v2);
+
+        restructure_map(&mut v1, true).unwrap();
         assert_eq!(v1, v2);
     }
 }
