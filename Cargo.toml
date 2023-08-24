@@ -1,5 +1,5 @@
 [package]
-name = "yaml_restructure_dots"
+name = "yaml_extras"
 version = "0.1.0"
 edition = "2021"
 authors = ["Liz Henry <liz.henry@ouvaton.org>"]

@@ -62,6 +62,23 @@ fn restructure_key(m: &mut serde_yaml::Mapping, k: &str) -> Result<()> {
 ///
 /// # Example
 ///
+/// ```
+///         let s1 = r#"
+/// foo:
+///     bar:
+///         baz: 42
+/// "#;
+/// 
+///         let s2 = r#"
+/// foo.bar.baz: 42
+/// "#;
+///         let mut v1: serde_yaml::Value = serde_yaml::from_str(s1).unwrap();
+///         let mut v2: serde_yaml::Value = serde_yaml::from_str(s2).unwrap();
+///         yaml_extras::restructure_map(&mut v2, false).unwrap();
+///         assert_eq!(v1, v2);
+/// 
+/// ```
+///
 /// 
 pub fn restructure_map(value: &mut serde_yaml::Value, recursive: bool) -> Result<()> {
     use serde_yaml::Value;
@@ -139,5 +156,40 @@ foo.bar.baz: true
 
         restructure_map(&mut v1, true).unwrap();
         assert_eq!(v1, v2);
+    }
+
+    #[test]
+    fn test_recursion1() {
+        let s1 = r#"
+foo:
+    bar:
+        baz: true
+"#;
+
+        let s2 = r#"
+foo:
+    bar.baz: true
+"#;
+        let v1: Value = serde_yaml::from_str(s1).unwrap();
+        let mut v2: Value = serde_yaml::from_str(s2).unwrap();
+        restructure_map(&mut v2, false).unwrap();
+        assert_ne!(v1, v2);
+
+        v2 = serde_yaml::from_str(s2).unwrap();
+        restructure_map(&mut v2, true).unwrap();
+        assert_eq!(v1, v2);
+    }
+
+    #[test]
+    fn test_error() {
+        let s1 = r#"
+foo:
+    bar: 42
+foo.bar.baz: true
+"#;
+
+        let mut v1: Value = serde_yaml::from_str(s1).unwrap();
+        let res = restructure_map(&mut v1, false);
+        assert!(res.is_err());
     }
 }
