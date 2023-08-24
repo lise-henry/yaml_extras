@@ -10,6 +10,7 @@ keywords = ["yaml"]
 
 [dependencies]
 serde_yaml = "0.9"
+thiserror = "1.0"
 
 [lib]
 path = "src/lib.rs"
