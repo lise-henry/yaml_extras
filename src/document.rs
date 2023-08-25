@@ -104,6 +104,32 @@ fn document_val(content: &mut String, val: &Value, description: Option<&Value>, 
 /// Uses a YAML representation from a default struct to document an API or options
 /// in a YAML-looking way
 ///
+/// The idea is to first generate a yaml representation with YourStruct::default()
+/// to get a mostly automated API description.
+///
+/// # Example
+///
+/// ```
+///         let desc_yaml = r#"
+/// foo:
+///     __description__: Description for foo
+///     bar: Description for bar
+/// "#;
+/// 
+///         let yaml = r#"
+/// foo:
+///     bar: 42
+/// "#;
+/// 
+///         let expected = "# Description for foo
+/// foo (Mapping): \n    # Description for bar
+///     bar (Number): 42
+/// ";
+///         let value: serde_yaml::Value = serde_yaml::from_str(&yaml).unwrap();
+///         let desc: serde_yaml::Value = serde_yaml::from_str(&desc_yaml).unwrap();
+///         let s = yaml_extras::document(&value, Some(&desc)).unwrap();
+///         assert_eq!(s, expected);
+/// ```
 pub fn document(val: &Value, description: Option<&Value>) -> error::Result<String> {
     let mut content = String::new();
 
