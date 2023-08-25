@@ -45,6 +45,7 @@ mod error;
 mod restructure;
 mod document;
 
+pub use error::{Result, Error};
 pub use restructure::Restructurer;
 pub use restructure::restructure_from_str;
 pub use restructure::restructure_map;
