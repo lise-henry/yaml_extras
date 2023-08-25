@@ -49,4 +49,5 @@ mod document;
 
 pub use error::{Result, Error};
 pub use restructure::Restructurer;
+pub use document::Documenter;
 pub use document::document;

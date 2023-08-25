@@ -26,6 +26,67 @@ fn indent(content: &mut String, n: u8) {
     }
 }
 
+/// Contains the option for documenting YAML
+pub struct Documenter<'d> {
+    indent: &'d str,
+    description_field: &'d str,
+}
+
+impl<'d> Documenter<'d> {
+    /// Creates a default documenter
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// let d = yaml_extras::Documenter::new();
+    /// ```
+    pub fn new() -> Self {
+        Documenter {
+            indent: INDENT,
+            description_field: DESCRIPTION,
+        }
+    }
+
+    /// Change the description field to describe a field that contains other field. Default: "__description__""
+    ///
+    /// E.g. if you have the following YAML structure:
+    ///
+    /// ```yaml
+    /// foo:
+    ///     bar: true
+    ///     baz: false
+    /// ```
+    ///
+    /// You can document it with the following YAML code:
+    ///
+    /// ```yaml
+    /// foo:
+    ///     __description__: This field is needed for foo because it contains nested fields
+    ///     bar: No need for inned __description__ since bar contains only a value
+    ///     baz: Same for baz
+    /// ```
+    ///
+    /// By default you shouldn't need to change this, except if your YAML structure actually contains
+    /// a field called `__description__`.
+    pub fn description_field(mut self, field: &'d str) -> Self {
+        self.description_field = field;
+        self
+    }
+
+    /// Change the indent. Default: 4 spaces.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// let d = yaml_extras::Documenter::new()
+    ///     .indent("\t");
+    /// ```
+    pub fn indent(mut self, indent: &'d str) -> Self {
+        self.indent = indent;
+        self
+    }
+}
+
 fn document_val(content: &mut String, val: &Value, description: Option<&Value>, mut indent_level: u8) -> error::Result<()> {
     match val {
         Value::Mapping(ref m) => {
