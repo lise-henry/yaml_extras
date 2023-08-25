@@ -23,7 +23,7 @@
 //!
 //! (Or not. I know *I* needed that. Whatever.)
 //!
-//! The functions `restructure_map` and `restructure_from_str` allow just that,
+//! The `Restructurer` methods allow just that,
 //! converting dotted keys to inner fiels:
 //!
 //! ```

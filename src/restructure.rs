@@ -100,6 +100,9 @@ impl<'r> Restructurer<'r> {
         self.ignore = ignore;
         self
     }
+
+    /// Restructures a `serde::yaml` value containing your YAML structure.
+    ///
     /// # Example
     ///
     /// ```
