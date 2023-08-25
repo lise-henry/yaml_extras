@@ -77,8 +77,24 @@ impl<'r> Restructurer<'r> {
     /// # Example
     ///
     /// ```
-    /// let r = yaml_extras::Restructurer::new()
-    ///     .ignore(vec!["some.key", "another.key"]);
+    /// let e = r#"
+    /// some.key: 42
+    /// foo:
+    ///     another.key:
+    ///         bar: true
+    /// "#;
+    ///
+    /// let s = r#"
+    /// some.key: 42
+    /// foo.another.key.bar: true
+    /// "#;
+    ///
+    /// let expected: serde_yaml::Value = serde_yaml::from_str(e)?;
+    /// let actual = yaml_extras::Restructurer::new()
+    ///     .ignore(vec!["some.key", "another.key"])
+    ///     .from_str(s)?;
+    /// assert_eq!(actual, expected);
+    /// # Ok::<(), yaml_extras::Error>(())
     /// ```
     pub fn ignore (mut self, ignore: Vec<&'r str>) -> Self {
         self.ignore = ignore;
