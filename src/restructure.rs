@@ -33,6 +33,56 @@ fn restructure_key(m: &mut serde_yaml::Mapping, k: &str) -> Result<()> {
     Ok(())
 }
 
+/// This struct mainly stores the options so they are easier to set/pass than tons of
+/// arguments to a single function
+pub struct Restructurer<'r> {
+    recursive: bool,
+    ignore: Vec<&'r str>,
+}
+
+impl<'r> Restructurer<'r> {
+    /// Creates a new Restructurer with default values
+    pub fn new() -> Self {
+        Restructurer {
+            recursive: true,
+            ignore: vec![],
+        }
+    }
+
+    /// set to `true` to apply restructuration recursively to all values inside the map,
+    ///   with `false` it will only be applied for keys at top-level
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// let restructurer = yaml_extras::Restructurer::new()
+    ///     .recursive(false);
+    /// ```
+    pub fn recursive(mut self, recursive: bool) -> Self {
+        self.recursive = recursive;
+        self
+    }
+
+    /// Add some (dotted) values that should be ignored in case you actually use dotted keys
+    ///
+    /// I mean if you use dotted keys you probably woudn't want to restructure your yaml representation anyway
+    /// except in stupid cases where you still need to restructure in some cases but not others
+    /// because of silly retrocompatbility issues. Not saying that this option is present
+    /// here because I hadn't thought too much about the keys of my options configuration file,
+    /// I mean it's just in case you need it, me I woudn't need that no ahhaha :sob:
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// let r = yaml_extras::Restructurer::new()
+    ///     .ignore(vec!["some.key", "another.key"]);
+    /// ```
+    pub fn ignore (mut self, ignore: Vec<&'r str>) -> Self {
+        self.ignore = ignore;
+        self
+    }
+    
+}
 
 /// Restructure a YAML map so that keys containing dots are transformed into appropriate
 /// fields of sub-maps.

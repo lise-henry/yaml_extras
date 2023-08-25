@@ -1,5 +1,9 @@
 # Changelog
 
+## unreleased
+
+* Add document function
+
 ## 0.1.1 (2023-08-24)
 
 * Remove `println` debug calls (oooopsie)
