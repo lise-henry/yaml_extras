@@ -111,3 +111,35 @@ pub fn document(val: &Value, description: Option<&Value>) -> error::Result<Strin
     
     Ok(content)
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use pretty_assertions::{assert_eq, assert_ne};
+    use serde_yaml::Value;
+
+    #[test]
+    fn document_simple() {
+        let desc_yaml = r#"
+foo:
+    __description__: Description for foo
+    bar: Description for bar
+"#;
+
+        let yaml = r#"
+foo:
+    bar: 42
+"#;
+
+        let expected = r#"# Description for foo
+foo (Mapping): 
+    # Description for bar
+    bar (Number): 42
+"#;
+        let value: Value = serde_yaml::from_str(&yaml).unwrap();
+        let desc: Value = serde_yaml::from_str(&desc_yaml).unwrap();
+        let s = document(&value, Some(&desc)).unwrap();
+        assert_eq!(s, expected);
+    }
+}
