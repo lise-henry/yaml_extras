@@ -3,6 +3,8 @@
 ## unreleased
 
 * Add document function
+* Refactoring: instead of directly calling a function, use `Restructurer::new().from_str`
+ or `Restructurer::new().apply_to_value(...)`
 
 ## 0.1.1 (2023-08-24)
 

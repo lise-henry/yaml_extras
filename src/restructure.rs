@@ -5,34 +5,6 @@
 use crate::error::Result;
 use crate::error::Error;
 
-/// Restructure a key inside a mapping so that if it's dotted it will be inserted
-/// to submap.
-fn restructure_key(m: &mut serde_yaml::Mapping, k: &str) -> Result<()> {
-    use serde_yaml::Value;
-    if let Some((prefix, suffix)) = k.split_once('.') {
-        if prefix.is_empty() || suffix.is_empty() {
-            // Do nothing if we can't have both a prefix and a suffix
-            return Ok(());
-        }
-        let val = m.remove(&k).unwrap();
-
-        if !m.contains_key(prefix) {
-            m.insert(Value::String(prefix.into()),
-                     Value::Mapping(serde_yaml::Mapping::new()));
-
-        }
-        let inner = m.get_mut(prefix)
-            .unwrap()
-            .as_mapping_mut()
-            .ok_or(Error::Restructure(format!("could not insert key {k}: {prefix} is not a mapping")))?;
-        inner.insert(Value::String(suffix.into()),
-                     val);
-        // Check the inner map and the suffix to see if it still contains dots
-        restructure_key(inner, suffix)?;
-    }
-    Ok(())
-}
-
 /// Restructure a YAML map so that keys containing dots are transformed into appropriate
 /// fields of sub-maps.
 ///
@@ -204,32 +176,47 @@ impl<'r> Restructurer<'r> {
     /// to submap.
     fn restructure_key(self: &Self, m: &mut serde_yaml::Mapping, k: &str) -> Result<()> {
         use serde_yaml::Value;
-        // Ignore if it is the ignore list
-        if self.ignore.contains(&k) {
-            return Ok(())
-        }
-        
-        if let Some((prefix, suffix)) = k.split_once('.') {
+
+        if let Some((mut prefix, mut suffix)) = k.split_once('.') {
+            // Check if the key is in the ignore list
+            for i in &self.ignore {
+                if k.starts_with(i) {
+                    // k is in ignore list, revamp prefix and suffix
+                    if let Some((p, s)) = k.split_once(&format!("{i}.")) {
+                        prefix = i;
+                        suffix = s;
+                        break;
+                    } else {
+                        // Nothing besides, returnning
+                        return Ok(());
+                    }
+                }
+            }
+
             if prefix.is_empty() || suffix.is_empty() {
                 // Do nothing if we can't have both a prefix and a suffix
                 return Ok(());
             }
-        let val = m.remove(&k).unwrap();
 
-        if !m.contains_key(prefix) {
-            m.insert(Value::String(prefix.into()),
+        
+            
+            let val = m.remove(&k).unwrap();
+
+            if !m.contains_key(prefix) {
+                m.insert(Value::String(prefix.into()),
                      Value::Mapping(serde_yaml::Mapping::new()));
-
+                
+            }
+            let inner = m.get_mut(prefix)
+                .unwrap()
+                .as_mapping_mut()
+                .ok_or(Error::Restructure(format!("could not insert key {k}: {prefix} is not a mapping")))?;
+            inner.insert(Value::String(suffix.into()),
+                         val);
+            // Check the inner map and the suffix to see if it still contains dots
+            self.restructure_key(inner, suffix)?;
         }
-        let inner = m.get_mut(prefix)
-            .unwrap()
-            .as_mapping_mut()
-            .ok_or(Error::Restructure(format!("could not insert key {k}: {prefix} is not a mapping")))?;
-        inner.insert(Value::String(suffix.into()),
-                     val);
-        // Check the inner map and the suffix to see if it still contains dots
-        self.restructure_key(inner, suffix)?;
-    }
+    
     Ok(())
 }
 }
@@ -322,6 +309,25 @@ foo.bar.baz: true
 "#;
         let v1: Value = serde_yaml::from_str(s1).unwrap();
         let v2: Value = Restructurer::new()
+            .from_str(&s2)
+            .unwrap();
+        assert_eq!(v1, v2);
+    }
+
+    #[test]
+    fn ignore() {
+        let s1 = r#"
+foo:
+    ignored.key:
+        baz: true
+"#;
+
+        let s2 = r#"
+foo.ignored.key.baz: true
+"#;
+        let v1: Value = serde_yaml::from_str(s1).unwrap();
+        let v2: Value = Restructurer::new()
+            .ignore(vec!["ignored.key"])
             .from_str(&s2)
             .unwrap();
         assert_eq!(v1, v2);
