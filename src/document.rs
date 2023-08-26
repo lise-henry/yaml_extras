@@ -264,4 +264,31 @@ foo (Mapping):
             .apply_value(&value, Some(&desc)).unwrap();
         assert_eq!(s, expected);
     }
+
+    #[test]
+    fn description() {
+        let desc_yaml = r#"
+foo:
+    ___description___: Description for foo
+    __description__: Description for __description__
+"#;
+
+        let yaml = r#"
+foo:
+    __description__: 42
+"#;
+
+        let expected = r#"# Description for foo
+foo (Mapping): 
+....# Description for __description__
+....__description__ (Number): 42
+"#;
+        let value: Value = serde_yaml::from_str(&yaml).unwrap();
+        let desc: Value = serde_yaml::from_str(&desc_yaml).unwrap();
+        let s = Documenter::new()
+            .indent("....")
+            .description_field("___description___")
+            .apply_value(&value, Some(&desc)).unwrap();
+        assert_eq!(s, expected);
+    }
 }
