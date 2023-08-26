@@ -20,7 +20,8 @@ animal:
 
     let value: serde_yaml::Value = serde_yaml::from_str(&yaml).unwrap();
     let desc: serde_yaml::Value = serde_yaml::from_str(&desc_yaml).unwrap();
-    let s = yaml_extras::document(&value, Some(&desc)).unwrap();
+    let s = yaml_extras::Documenter::new()
+        .apply_value(&value, Some(&desc)).unwrap();
 
     println!("{s}");
 }
