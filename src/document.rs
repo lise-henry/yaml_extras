@@ -19,7 +19,10 @@ pub enum ValueType {
 
 impl ValueType {
     pub fn to_str(v: &ValueType) -> String {
-        format!(" ({:?})", v)
+        match v {
+            ValueType::Null | ValueType::List | ValueType::Mapping | ValueType::Tagged => String::new(),
+            __=> format!(" ({:?})", v)
+        }
     }
 }
 
@@ -180,7 +183,7 @@ impl<'d> Documenter<'d> {
                     } else {
                         format!("{:?}", key)
                     };
-                    content.push_str(&format!("{k}{t}: ", t = (*self.type_name)(&ty)));
+                    content.push_str(&format!("{k}{t}:", t = (*self.type_name)(&ty)));
                     self.document_val(content, value, desc_value, indent_level + 1);
                 }
             },
@@ -193,6 +196,7 @@ impl<'d> Documenter<'d> {
                 }
             }
             _ => {
+                content.push_str(" ");
                 content.push_str(&serde_yaml::to_string(val)?);
             },
         }
@@ -229,7 +233,7 @@ impl<'d> Documenter<'d> {
     /// "#;
     /// 
     ///         let expected = "# Description for foo
-    /// foo (Mapping): \n    # Description for bar
+    /// foo:\n    # Description for bar
     ///     bar (Number): 42
     /// ";
     ///         let value: serde_yaml::Value = serde_yaml::from_str(&yaml).unwrap();
@@ -268,7 +272,7 @@ foo:
 "#;
 
         let expected = r#"# Description for foo
-foo (Mapping): 
+foo:
     # Description for bar
     bar (Number): 42
 "#;
@@ -293,7 +297,7 @@ foo:
 "#;
 
         let expected = r#"# Description for foo
-foo (Mapping): 
+foo:
 ....# Description for bar
 ....bar (Number): 42
 "#;
@@ -319,7 +323,7 @@ foo:
 "#;
 
         let expected = r#"# Description for foo
-foo (Mapping): 
+foo:
 ....# Description for __description__
 ....__description__ (Number): 42
 "#;
