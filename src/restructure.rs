@@ -30,7 +30,7 @@ use crate::error::Error;
 /// "#;
 ///         let v1: serde_yaml::Value = serde_yaml::from_str(s1)?;
 ///         let v2 = yaml_extras::Restructurer::new()
-///             .from_str(s2)?;
+///             .apply_str(s2)?;
 ///         assert_eq!(v1, v2);
 /// # Ok::<(), yaml_extras::Error>(())
 /// 
@@ -92,7 +92,7 @@ impl<'r> Restructurer<'r> {
     /// let expected: serde_yaml::Value = serde_yaml::from_str(e)?;
     /// let actual = yaml_extras::Restructurer::new()
     ///     .ignore(vec!["some.key", "another.key"])
-    ///     .from_str(s)?;
+    ///     .apply_str(s)?;
     /// assert_eq!(actual, expected);
     /// # Ok::<(), yaml_extras::Error>(())
     /// ```
@@ -119,11 +119,11 @@ impl<'r> Restructurer<'r> {
     /// let mut v1: serde_yaml::Value = serde_yaml::from_str(s1)?;
     /// let mut v2: serde_yaml::Value = serde_yaml::from_str(s2)?;
     /// yaml_extras::Restructurer::new()
-    ///             .apply_to_value(&mut v2)?;
+    ///             .apply_value(&mut v2)?;
     /// assert_eq!(v1, v2);
     /// # Ok::<(), yaml_extras::Error>(())
     /// ```
-    pub fn apply_to_value(self: &Self, value: &mut serde_yaml::Value) -> Result<()> {
+    pub fn apply_value(self: &Self, value: &mut serde_yaml::Value) -> Result<()> {
         use serde_yaml::Value;
         let m = value.as_mapping_mut()
             .ok_or(Error::Restructure("not a mapping".into()))?;
@@ -153,7 +153,7 @@ impl<'r> Restructurer<'r> {
                 .map(|(k, _)| k.as_str().unwrap().to_owned())
                 .collect();
             for k in map_keys {
-                self.apply_to_value(m.get_mut(&k)
+                self.apply_value(m.get_mut(&k)
                                     .unwrap())?;
                 
             }
@@ -171,7 +171,7 @@ impl<'r> Restructurer<'r> {
     /// let yaml = "nested.key: 42";
     ///
     /// let value = yaml_extras::Restructurer::new()
-    ///     .from_str(yaml)?;
+    ///     .apply_str(yaml)?;
     /// 
     /// # Ok::<(), yaml_extras::Error>(())
     /// ```
@@ -182,9 +182,9 @@ impl<'r> Restructurer<'r> {
     /// nested:
     ///     key: 42
     /// ```
-    pub fn from_str(self: &Self, s: &str) -> Result<serde_yaml::Value> {
+    pub fn apply_str(self: &Self, s: &str) -> Result<serde_yaml::Value> {
         let mut value = serde_yaml::from_str(s)?;
-        self.apply_to_value(&mut value)?;
+        self.apply_value(&mut value)?;
         
         Ok(value)
     }
@@ -264,15 +264,15 @@ foo.bar.baz: true
         let mut r = Restructurer::new()
             .recursive(false);
 
-        r.apply_to_value(&mut v2).unwrap();
+        r.apply_value(&mut v2).unwrap();
         assert_eq!(v1, v2);
 
         v2 = serde_yaml::from_str(s2).unwrap();
         r = r.recursive(true);
-        r.apply_to_value(&mut v2).unwrap();
+        r.apply_value(&mut v2).unwrap();
         assert_eq!(v1, v2);
 
-        r.apply_to_value(&mut v1).unwrap();
+        r.apply_value(&mut v1).unwrap();
         assert_eq!(v1, v2);
     }
 
@@ -292,12 +292,12 @@ foo:
         let mut v2: Value = serde_yaml::from_str(s2).unwrap();
         Restructurer::new()
             .recursive(false)
-            .apply_to_value(&mut v2).unwrap();
+            .apply_value(&mut v2).unwrap();
         assert_ne!(v1, v2);
 
         v2 = serde_yaml::from_str(s2).unwrap();
         Restructurer::new()
-            .apply_to_value(&mut v2).unwrap();
+            .apply_value(&mut v2).unwrap();
         assert_eq!(v1, v2);
     }
 
@@ -311,12 +311,12 @@ foo.bar.baz: true
 
         let mut v1: Value = serde_yaml::from_str(s1).unwrap();
         let res = Restructurer::new()
-            .apply_to_value(&mut v1);
+            .apply_value(&mut v1);
         assert!(res.is_err());
     }
 
     #[test]
-    fn test_from_str() {
+    fn test_apply_str() {
         let s1 = r#"
 foo:
     bar:
@@ -328,7 +328,7 @@ foo.bar.baz: true
 "#;
         let v1: Value = serde_yaml::from_str(s1).unwrap();
         let v2: Value = Restructurer::new()
-            .from_str(&s2)
+            .apply_str(&s2)
             .unwrap();
         assert_eq!(v1, v2);
     }
@@ -347,7 +347,7 @@ foo.ignored.key.baz: true
         let v1: Value = serde_yaml::from_str(s1).unwrap();
         let v2: Value = Restructurer::new()
             .ignore(vec!["ignored.key"])
-            .from_str(&s2)
+            .apply_str(&s2)
             .unwrap();
         assert_eq!(v1, v2);
     }

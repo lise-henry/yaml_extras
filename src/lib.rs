@@ -37,7 +37,7 @@
 //! "#;
 //!         let v1: serde_yaml::Value = serde_yaml::from_str(s1)?;
 //!         let v2 = yaml_extras::Restructurer::new()
-//!             .from_str(&s2)?;
+//!             .apply_str(&s2)?;
 //!         assert_eq!(v1, v2);
 //! # Ok::<(), yaml_extras::Error>(())
 //! ```
