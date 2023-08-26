@@ -134,9 +134,7 @@ impl<'d> Documenter<'d> {
                     
                     
                     // Display the key name
-                    for _ in 0..indent_level {
-                        content.push_str(INDENT);
-                    }
+                    self.indent_str(content, indent_level);
                     let k = if key.is_string() {
                         key.as_str().unwrap().to_owned()
                     } else {
@@ -168,6 +166,14 @@ impl<'d> Documenter<'d> {
     /// The idea is to first generate a yaml representation with YourStruct::default()
     /// to get a mostly automated API description.
     ///
+    /// # Arguments
+    ///
+    /// * `value`: should correspond to a `serde_yaml` Value with the default values of your
+    ///   structure
+    /// * `description`: an optional `serde_yaml` value mirroring the `value` but with descriptions for
+    ///    fields you want to document. Use `__description__` inside a `Mapping` to document the
+    ///   upper-level field.
+    ///
     /// # Example
     ///
     /// ```
@@ -193,10 +199,10 @@ impl<'d> Documenter<'d> {
     ///             .unwrap();
     ///         assert_eq!(s, expected);
     /// ```
-    pub fn apply_value(&self, val: &Value, description: Option<&Value>) -> error::Result<String> {
+    pub fn apply_value(&self, value: &Value, description: Option<&Value>) -> error::Result<String> {
         let mut content = String::new();
 
-        self.document_val(&mut content, val, description, 0)?;
+        self.document_val(&mut content, value, description, 0)?;
     
         Ok(content)
     }
@@ -229,6 +235,32 @@ foo (Mapping):
         let value: Value = serde_yaml::from_str(&yaml).unwrap();
         let desc: Value = serde_yaml::from_str(&desc_yaml).unwrap();
         let s = Documenter::new()
+            .apply_value(&value, Some(&desc)).unwrap();
+        assert_eq!(s, expected);
+    }
+
+    #[test]
+    fn indent() {
+        let desc_yaml = r#"
+foo:
+    __description__: Description for foo
+    bar: Description for bar
+"#;
+
+        let yaml = r#"
+foo:
+    bar: 42
+"#;
+
+        let expected = r#"# Description for foo
+foo (Mapping): 
+....# Description for bar
+....bar (Number): 42
+"#;
+        let value: Value = serde_yaml::from_str(&yaml).unwrap();
+        let desc: Value = serde_yaml::from_str(&desc_yaml).unwrap();
+        let s = Documenter::new()
+            .indent("....")
             .apply_value(&value, Some(&desc)).unwrap();
         assert_eq!(s, expected);
     }
