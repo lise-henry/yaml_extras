@@ -17,13 +17,20 @@ pub enum ValueType {
     Tagged,
 }
 
+impl ValueType {
+    pub fn to_str(v: &ValueType) -> String {
+        format!(" ({:?})", v)
+    }
+}
+
 const INDENT: &'static str = "    ";
 const DESCRIPTION: &'static str = "__description__";
 
 /// Contains the option for documenting YAML
-pub struct Documenter<'d> {
+pub struct Documenter<'d,> {
     indent: &'d str,
     description_field: &'d str,
+    type_name: &'d dyn Fn(&ValueType) -> String,
 }
 
 impl<'d> Documenter<'d> {
@@ -38,6 +45,7 @@ impl<'d> Documenter<'d> {
         Documenter {
             indent: INDENT,
             description_field: DESCRIPTION,
+            type_name: &ValueType::to_str,
         }
     }
 
@@ -67,6 +75,38 @@ impl<'d> Documenter<'d> {
         self
     }
 
+    /// Change the way to display types.
+    ///
+    /// The default function is a sensible one for english, but for other languages or if
+    /// you want to tweak the display (e.g. not printing the type's name between parenthesis)
+    /// you can change it.
+    ///
+    /// # Argument
+    ///
+    /// * f: reference to a (&ValueType) -> String closure or function. It it responsible for
+    ///     returning the type name as string, but also the space before it (unless you
+    ///    don't want to display the type). Typically you will want to match on `yaml_extras::document::ValueType`
+    ///    and maybe call the `yaml_extras_document_ValueType::to_str` function, which is
+    ///   the default.
+    ///
+    /// # Example
+    /// ```
+    /// let yaml = serde_yaml::from_str("foo: 42").unwrap();
+    /// let mut d = yaml_extras::Documenter::new()
+    ///     .type_name(&|t| format!(" (whatever)"));
+    ///
+    /// let mut actual = d.apply_value(&yaml, None).unwrap();
+    /// assert_eq!(actual, "foo (whatever): 42\n");
+    ///
+    /// d = d.type_name(&|t| String::new());
+    /// actual = d.apply_value(&yaml, None).unwrap();
+    /// assert_eq!(actual, "foo: 42\n");
+    /// ```
+    pub fn type_name(mut self, f: &'d dyn Fn(&ValueType) -> String) -> Self {
+        self.type_name = f;
+        self
+    }
+    
     /// Change the indent. Default: 4 spaces.
     ///
     /// # Example
@@ -140,7 +180,7 @@ impl<'d> Documenter<'d> {
                     } else {
                         format!("{:?}", key)
                     };
-                    content.push_str(&format!("{} ({:?}): ", &k, ty));
+                    content.push_str(&format!("{k}{t}: ", t = (*self.type_name)(&ty)));
                     self.document_val(content, value, desc_value, indent_level + 1);
                 }
             },
