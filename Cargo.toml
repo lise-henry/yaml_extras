@@ -10,11 +10,14 @@ license = "MPL-2.0"
 keywords = ["yaml"]
 
 [dependencies]
+serde = "1"
 serde_yaml = "0.9"
 thiserror = "1"
 
 [dev-dependencies]
 pretty_assertions = "1"
+serde_derive = "1"
+
 
 [lib]
 path = "src/lib.rs"
