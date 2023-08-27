@@ -20,7 +20,7 @@ pub enum ValueType {
 impl ValueType {
     pub fn to_str(v: &ValueType) -> String {
         match v {
-            ValueType::Null | ValueType::List | ValueType::Mapping | ValueType::Tagged => String::new(),
+            ValueType::Null | ValueType::Mapping | ValueType::Tagged => String::new(),
             __=> format!(" ({:?})", v)
         }
     }
@@ -130,7 +130,8 @@ impl<'d> Documenter<'d> {
     }
 
 
-    fn document_val(&self, content: &mut String, val: &Value, description: Option<&Value>, indent_level: u8) -> error::Result<()> {
+    fn document_val(&self, val: &Value, description: Option<&Value>, indent_level: u8) -> error::Result<String> {
+        let mut content = String::new();
         match val {
             Value::Mapping(ref m) => {
                 if indent_level > 0 {
@@ -153,7 +154,7 @@ impl<'d> Documenter<'d> {
                         match inner {
                             Value::String(s) => {
                                 // Found a description, displays it
-                                self.indent_str(content, indent_level);
+                                self.indent_str(&mut content, indent_level);
                                 content.push_str("# ");
                                 content.push_str(s);
                                 content.push_str("\n");
@@ -163,7 +164,7 @@ impl<'d> Documenter<'d> {
                                 let desc = m.get(self.description_field)
                                     .and_then(|v| v.as_str());
                                 if let Some(s) = desc {
-                                    self.indent_str(content, indent_level);
+                                    self.indent_str(&mut content, indent_level);
                                     content.push_str("# ");
                                     content.push_str(s);
                                     content.push_str("\n");
@@ -177,22 +178,22 @@ impl<'d> Documenter<'d> {
                     
                     
                     // Display the key name
-                    self.indent_str(content, indent_level);
+                    self.indent_str(&mut content, indent_level);
                     let k = if key.is_string() {
                         key.as_str().unwrap().to_owned()
                     } else {
                         format!("{:?}", key)
                     };
                     content.push_str(&format!("{k}{t}:", t = (*self.type_name)(&ty)));
-                    self.document_val(content, value, desc_value, indent_level + 1);
+                    content.push_str(&self.document_val(value, desc_value, indent_level + 1)?);
                 }
             },
             Value::Sequence(ref s) => {
                 content.push_str("\n");
                 for v in s.iter() {
-                    self.indent_str(content, indent_level);
+                    self.indent_str(&mut content, indent_level);
                     content.push_str("- ");
-                    self.document_val(content, v, None, indent_level + 1);
+                    content.push_str(&self.document_val(v, None, indent_level + 1)?);
                 }
             }
             _ => {
@@ -200,7 +201,7 @@ impl<'d> Documenter<'d> {
                 content.push_str(&serde_yaml::to_string(val)?);
             },
         }
-        Ok(())    
+        Ok(content)    
     }
 
 
@@ -244,11 +245,7 @@ impl<'d> Documenter<'d> {
     ///         assert_eq!(s, expected);
     /// ```
     pub fn apply_value(&self, value: &Value, description: Option<&Value>) -> error::Result<String> {
-        let mut content = String::new();
-
-        self.document_val(&mut content, value, description, 0)?;
-    
-        Ok(content)
+        self.document_val(value, description, 0)
     }
 }
 
