@@ -49,12 +49,16 @@ preferences:
 
     let value = serde_yaml::to_value(&User::default()).unwrap();
     let desc: serde_yaml::Value = serde_yaml::from_str(&desc_yaml).unwrap();
+    let d2 = yaml_extras::Documenter::new();
     let d = yaml_extras::Documenter::new()
+        .format_key(&|k| {
+            format!("{}{}:{}", k.indent, k.key, k.value)
+        })
         .type_name(&|t| match t {
             ValueType::Mapping | ValueType::Tagged => format!(""),
             _ => ValueType::to_str(t)
         });
-    let s = d.apply_value(&value, Some(&desc)).unwrap();
+    let s = d2.apply_value(&value, Some(&desc)).unwrap();
 
     println!("{s}");
 }

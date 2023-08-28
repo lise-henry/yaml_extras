@@ -30,25 +30,34 @@ const INDENT: &'static str = "    ";
 const DESCRIPTION: &'static str = "__description__";
 
 /// Arguments passed to a `Documenter`.`format_key` closure.
+///
+/// This structure exposes the most information possible, which may or may not been used.
 pub struct KeyArgs<'k> {
+    /// The indent as str, usually composed of spaces
     pub indent: &'k str,
+    /// The "path" in the YAML structure, a list of keys
+    pub path: &'k Vec<String>,
     pub key: &'k str,
     pub description: Option<&'k str>,
+    /// A representation of the type
     pub ty: &'k str,
+    /// A representation of the value
     pub value: &'k str,
+    /// Original reference to the value
+    pub yaml_value: &'k Value,
 }
 
 fn default_format_key(k: KeyArgs) -> String {
-    let the_description = if let Some(s) = k.description {
-        format!("# {s}\n")
-    } else {
-        "".to_owned()
-    };
     let key = k.key;
     let ty = k.ty;
     let value = k.value;
     let indent = k.indent;
-    format!("{indent}{the_description}{indent}{key}{ty}:{value}")
+    let the_description = if let Some(s) = k.description {
+        format!("{indent}# {s}\n")
+    } else {
+        "".to_owned()
+    };
+    format!("{the_description}{indent}{key}{ty}:{value}")
 }
 
 
@@ -182,7 +191,7 @@ impl<'d> Documenter<'d> {
         match val {
             Value::Mapping(ref m) => {
                 if struct_path.len() > 0 {
-                    content.push_str("\n");
+                    content.push_str("\n"); //???
                 }
                 for (key, value) in m.iter() {
                     let ty = match value {
@@ -228,7 +237,13 @@ impl<'d> Documenter<'d> {
                     let v = self.document_val(value, desc_value, struct_path)?;
                     struct_path.pop();
 
-                    let key_args = KeyArgs {indent: &self.indent_str(struct_path), key: &k, description: the_description, ty: &(*self.type_name)(&ty), value: &v};
+                    let key_args = KeyArgs {yaml_value: value,
+                                            path: struct_path,
+                                            indent: &self.indent_str(struct_path),
+                                            key: &k,
+                                            description: the_description,
+                                            ty: &(*self.type_name)(&ty),
+                                            value: &v};
                     content.push_str(&(*self.format_key)(key_args));
                 }
             },
