@@ -29,11 +29,35 @@ impl ValueType {
 const INDENT: &'static str = "    ";
 const DESCRIPTION: &'static str = "__description__";
 
+/// Arguments passed to a `Documenter`.`format_key` closure.
+pub struct KeyArgs<'k> {
+    pub indent: &'k str,
+    pub key: &'k str,
+    pub description: Option<&'k str>,
+    pub ty: &'k str,
+    pub value: &'k str,
+}
+
+fn default_format_key(k: KeyArgs) -> String {
+    let the_description = if let Some(s) = k.description {
+        format!("# {s}\n")
+    } else {
+        "".to_owned()
+    };
+    let key = k.key;
+    let ty = k.ty;
+    let value = k.value;
+    let indent = k.indent;
+    format!("{indent}{the_description}{indent}{key}{ty}:{value}")
+}
+
+
 /// Contains the option for documenting YAML
 pub struct Documenter<'d,> {
     indent: &'d str,
     description_field: &'d str,
     type_name: &'d dyn Fn(&ValueType) -> String,
+    format_key: &'d dyn Fn(KeyArgs) -> String,
 }
 
 impl<'d> Documenter<'d> {
@@ -49,6 +73,7 @@ impl<'d> Documenter<'d> {
             indent: INDENT,
             description_field: DESCRIPTION,
             type_name: &ValueType::to_str,
+            format_key: &default_format_key,
         }
     }
 
@@ -123,10 +148,12 @@ impl<'d> Documenter<'d> {
         self
     }
 
-    fn indent_str(&self, content: &mut String, struct_path: &Vec<String>) {
+    fn indent_str(&self, struct_path: &Vec<String>) -> String {
+        let mut content = String::new();
         for _ in 0..struct_path.len() {
             content.push_str(self.indent);
         }
+        content
     }
 
 
@@ -181,15 +208,14 @@ impl<'d> Documenter<'d> {
                     let v = self.document_val(value, desc_value, struct_path)?;
                     struct_path.pop();
 
-                    content.push_str(&format!("{description}{k}{t}: {v}",
-                                      description = if let Some(ref s) = the_description { format!("# {s}\n") } else { "".to_owned() },
-                                      t = (*self.type_name)(&ty)));
+                    let key_args = KeyArgs {indent: &self.indent_str(struct_path), key: &k, description: the_description, ty: &(*self.type_name)(&ty), value: &v};
+                    content.push_str(&(*self.format_key)(key_args));
                 }
             },
             Value::Sequence(ref s) => {
                 content.push_str("\n");
                 for v in s.iter() {
-                    self.indent_str(&mut content, struct_path);
+                    content.push_str(&self.indent_str(struct_path));
                     content.push_str("- ");
                     struct_path.push("-".to_owned());
                     content.push_str(&self.document_val(v, None, struct_path)?);
@@ -260,7 +286,7 @@ mod tests {
     fn document_simple() {
         let desc_yaml = r#"
 foo:
-    __description__: Description for foo
+    __description__: Description for foo.
     bar: Description for bar
 "#;
 
@@ -269,7 +295,7 @@ foo:
     bar: 42
 "#;
 
-        let expected = r#"# Description for foo
+        let expected = r#"# Description for foo.
 foo:
     # Description for bar
     bar (Number): 42
