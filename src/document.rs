@@ -134,6 +134,26 @@ impl<'d> Documenter<'d> {
         self.type_name = f;
         self
     }
+
+    /// Change the way `Mappings` keys are displayed.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// let yaml = serde_yaml::from_str::<serde_yaml::Value>(r#"foo: 42
+    /// bar: true"#).unwrap();
+    /// let actual = yaml_extras::Documenter::new()
+    ///     // Quite useless way to display the info
+    ///     .format_key(&|args| format!("{}!!! ", args.key.to_uppercase()))
+    ///     .apply_value(&yaml, None)
+    ///     .unwrap();
+    ///
+    /// assert_eq!(actual, "FOO!!! BAR!!! ");
+    /// ```
+    pub fn format_key(mut self, f: &'d dyn Fn(KeyArgs) -> String) -> Self {
+        self.format_key = f;
+        self
+    }
     
     /// Change the indent. Default: 4 spaces.
     ///
