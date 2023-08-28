@@ -123,18 +123,18 @@ impl<'d> Documenter<'d> {
         self
     }
 
-    fn indent_str(&self, content: &mut String, n: u8) {
-        for _ in 0..n {
+    fn indent_str(&self, content: &mut String, struct_path: &Vec<String>) {
+        for _ in 0..struct_path.len() {
             content.push_str(self.indent);
         }
     }
 
 
-    fn document_val(&self, val: &Value, description: Option<&Value>, indent_level: u8) -> error::Result<String> {
+    fn document_val(&self, val: &Value, description: Option<&Value>, struct_path: &mut Vec<String>) -> error::Result<String> {
         let mut content = String::new();
         match val {
             Value::Mapping(ref m) => {
-                if indent_level > 0 {
+                if struct_path.len() > 0 {
                     content.push_str("\n");
                 }
                 for (key, value) in m.iter() {
@@ -150,24 +150,18 @@ impl<'d> Documenter<'d> {
                     // Try displaying the description, if it exists
                     let desc_value = description.and_then(|d| d.as_mapping())
                         .and_then(|m| m.get(key));
+                    let mut the_description: Option<&str> = None;
                     if let Some(inner) = desc_value {
                         match inner {
                             Value::String(s) => {
-                                // Found a description, displays it
-                                self.indent_str(&mut content, indent_level);
-                                content.push_str("# ");
-                                content.push_str(s);
-                                content.push_str("\n");
+                                the_description = Some(s);
                             }
                             Value::Mapping(m) => {
                                 // Try to see if there is a description field for this mapping
                                 let desc = m.get(self.description_field)
                                     .and_then(|v| v.as_str());
                                 if let Some(s) = desc {
-                                    self.indent_str(&mut content, indent_level);
-                                    content.push_str("# ");
-                                    content.push_str(s);
-                                    content.push_str("\n");
+                                    the_description = Some(s);
                                 }
                             }
                             _ => {
@@ -178,22 +172,28 @@ impl<'d> Documenter<'d> {
                     
                     
                     // Display the key name
-                    self.indent_str(&mut content, indent_level);
                     let k = if key.is_string() {
                         key.as_str().unwrap().to_owned()
                     } else {
                         format!("{:?}", key)
                     };
-                    content.push_str(&format!("{k}{t}:", t = (*self.type_name)(&ty)));
-                    content.push_str(&self.document_val(value, desc_value, indent_level + 1)?);
+                    struct_path.push(k.to_owned());
+                    let v = self.document_val(value, desc_value, struct_path)?;
+                    struct_path.pop();
+
+                    content.push_str(&format!("{description}{k}{t}: {v}",
+                                      description = if let Some(ref s) = the_description { format!("# {s}\n") } else { "".to_owned() },
+                                      t = (*self.type_name)(&ty)));
                 }
             },
             Value::Sequence(ref s) => {
                 content.push_str("\n");
                 for v in s.iter() {
-                    self.indent_str(&mut content, indent_level);
+                    self.indent_str(&mut content, struct_path);
                     content.push_str("- ");
-                    content.push_str(&self.document_val(v, None, indent_level + 1)?);
+                    struct_path.push("-".to_owned());
+                    content.push_str(&self.document_val(v, None, struct_path)?);
+                    struct_path.pop();
                 }
             }
             _ => {
@@ -245,7 +245,8 @@ impl<'d> Documenter<'d> {
     ///         assert_eq!(s, expected);
     /// ```
     pub fn apply_value(&self, value: &Value, description: Option<&Value>) -> error::Result<String> {
-        self.document_val(value, description, 0)
+        let mut struct_path = vec![];
+        self.document_val(value, description, &mut struct_path)
     }
 }
 
