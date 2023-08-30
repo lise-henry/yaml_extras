@@ -193,6 +193,18 @@ impl<'d> Documenter<'d> {
         self.format_key = f;
         self
     }
+
+    /// Change the way `Mappings` are displayed.
+    pub fn format_mapping(mut self, f: &'d dyn Fn(InnerArgs) -> String) -> Self {
+        self.format_mapping = f;
+        self
+    }
+
+    /// Change the way `Sequences` are displayed.
+    pub fn format_list(mut self, f: &'d dyn Fn(InnerArgs) -> String) -> Self {
+        self.format_list = f;
+        self
+    }
     
     /// Change the indent. Default: 4 spaces.
     ///
