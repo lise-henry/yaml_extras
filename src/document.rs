@@ -151,8 +151,7 @@ impl<'d> Documenter<'d> {
     /// # Argument
     ///
     /// * f: reference to a (&ValueType) -> String closure or function. It it responsible for
-    ///     returning the type name as string, but also the space before it (unless you
-    ///    don't want to display the type). Typically you will want to match on `yaml_extras::document::ValueType`
+    ///     returning the type name as string. Typically you will want to match on `yaml_extras::document::ValueType`
     ///    and maybe call the `yaml_extras_document_ValueType::to_str` function, which is
     ///   the default.
     ///
@@ -163,11 +162,11 @@ impl<'d> Documenter<'d> {
     ///     .type_name(&|t| format!(" (whatever)"));
     ///
     /// let mut actual = d.apply_value(&yaml, None).unwrap();
-    /// assert_eq!(actual, "foo (whatever): 42\n");
+    /// assert_eq!(actual, "foo (whatever): 42");
     ///
     /// d = d.type_name(&|t| String::new());
     /// actual = d.apply_value(&yaml, None).unwrap();
-    /// assert_eq!(actual, "foo: 42\n");
+    /// assert_eq!(actual, "foo: 42");
     /// ```
     pub fn type_name(mut self, f: &'d dyn Fn(&ValueType) -> String) -> Self {
         self.type_name = f;
@@ -183,11 +182,11 @@ impl<'d> Documenter<'d> {
     /// bar: true"#).unwrap();
     /// let actual = yaml_extras::Documenter::new()
     ///     // Quite useless way to display the info
-    ///     .format_key(&|args| format!("{}!!! ", args.key.to_uppercase()))
+    ///     .format_key(&|args| format!("{}!!!", args.key.to_uppercase()))
     ///     .apply_value(&yaml, None)
     ///     .unwrap();
     ///
-    /// assert_eq!(actual, "FOO!!! BAR!!! ");
+    /// assert_eq!(actual, "FOO!!!\nBAR!!!");
     /// ```
     pub fn format_key(mut self, f: &'d dyn Fn(KeyArgs) -> String) -> Self {
         self.format_key = f;
@@ -355,9 +354,9 @@ impl<'d> Documenter<'d> {
     /// "#;
     /// 
     ///         let expected = "# Description for foo
-    /// foo:\n    # Description for bar
-    ///     bar (Number): 42
-    /// ";
+    /// foo: \n    # Description for bar
+    ///     bar (Number): 42";
+    /// 
     ///         let value: serde_yaml::Value = serde_yaml::from_str(&yaml).unwrap();
     ///         let desc: serde_yaml::Value = serde_yaml::from_str(&desc_yaml).unwrap();
     ///         let s = yaml_extras::Documenter::new()
@@ -382,8 +381,7 @@ mod tests {
         let desc_yaml = r#"
 foo:
     __description__: Description for foo.
-    bar: Description for bar
-"#;
+    bar: Description for bar"#;
 
         let yaml = r#"
 foo:
@@ -391,10 +389,9 @@ foo:
 "#;
 
         let expected = r#"# Description for foo.
-foo:
+foo: 
     # Description for bar
-    bar (Number): 42
-"#;
+    bar (Number): 42"#;
         let value: Value = serde_yaml::from_str(&yaml).unwrap();
         let desc: Value = serde_yaml::from_str(&desc_yaml).unwrap();
         let s = Documenter::new()
@@ -416,10 +413,9 @@ foo:
 "#;
 
         let expected = r#"# Description for foo
-foo:
+foo: 
 ....# Description for bar
-....bar (Number): 42
-"#;
+....bar (Number): 42"#;
         let value: Value = serde_yaml::from_str(&yaml).unwrap();
         let desc: Value = serde_yaml::from_str(&desc_yaml).unwrap();
         let s = Documenter::new()
@@ -442,10 +438,9 @@ foo:
 "#;
 
         let expected = r#"# Description for foo
-foo:
+foo: 
 ....# Description for __description__
-....__description__ (Number): 42
-"#;
+....__description__ (Number): 42"#;
         let value: Value = serde_yaml::from_str(&yaml).unwrap();
         let desc: Value = serde_yaml::from_str(&desc_yaml).unwrap();
         let s = Documenter::new()
