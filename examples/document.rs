@@ -52,7 +52,7 @@ preferences:
     let d2 = yaml_extras::Documenter::new();
     let d = yaml_extras::Documenter::new()
         .format_key(&|k| {
-            format!("{}{}:{}", k.indent, k.key, k.value)
+            format!("{}{}:{}\n", k.indent, k.key, k.value)
         })
         .type_name(&|t| match t {
             ValueType::Mapping | ValueType::Tagged => format!(""),

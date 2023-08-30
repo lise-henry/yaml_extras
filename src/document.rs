@@ -57,7 +57,7 @@ fn default_format_key(k: KeyArgs) -> String {
     } else {
         "".to_owned()
     };
-    format!("{the_description}{indent}{key}{ty}:{value}")
+    format!("\n{the_description}{indent}{key}{ty}: {value}")
 }
 
 
@@ -191,7 +191,7 @@ impl<'d> Documenter<'d> {
         match val {
             Value::Mapping(ref m) => {
                 if struct_path.len() > 0 {
-                    content.push_str("\n"); //???
+//                    content.push_str("\n"); //???
                 }
                 for (key, value) in m.iter() {
                     let ty = match value {
@@ -248,19 +248,26 @@ impl<'d> Documenter<'d> {
                 }
             },
             Value::Sequence(ref s) => {
-                content.push_str("\n");
+                struct_path.push("-".to_owned());
+                let mut list = vec![];
                 for v in s.iter() {
-                    content.push_str(&self.indent_str(struct_path));
-                    content.push_str("- ");
-                    struct_path.push("-".to_owned());
-                    content.push_str(&self.document_val(v, None, struct_path)?);
-                    struct_path.pop();
+                    list.push(self.document_val(v, None, struct_path)?);
+                }
+                struct_path.pop();
+                content.push_str(&format!("[{content}]",
+                                          content = list.join(", ")));
+            },
+            Value::Bool(b) => { content.push_str(&format!("{b}")); },
+            Value::String(ref s) => { content.push_str(&format!("{s}")); },
+            Value::Null => { content.push_str("Null"); },
+            Value::Tagged(ref t) => { content.push_str(&self.document_val(&t.value, description, struct_path)?); },
+            Value::Number(ref n) => {
+                if let Some(i) = n.as_i64() {
+                    content.push_str(&format!("{i}"));
+                } else if let Some(f) = n.as_f64() {
+                    content.push_str(&format!("{f}"));
                 }
             }
-            _ => {
-                content.push_str(" ");
-                content.push_str(&serde_yaml::to_string(val)?);
-            },
         }
         Ok(content)    
     }
