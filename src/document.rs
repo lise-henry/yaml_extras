@@ -47,6 +47,18 @@ pub struct KeyArgs<'k> {
     pub yaml_value: &'k Value,
 }
 
+/// Arguments passed to a `Documenter.`format_mapping` or `format_list` closure.
+///
+/// This structure exposes the most information possible, which may or may not been used.
+pub struct InnerArgs<'a> {
+    /// The most important part, probably the only one you'll need to use by calling `join` on it
+    pub inner: &'a Vec<String>,
+    /// The indend as str, usually composed of spaces
+    pub indent: &'a str,
+    /// The full path in the structure
+    pub path: &'a Vec<String>,
+}
+
 fn default_format_key(k: KeyArgs) -> String {
     let key = k.key;
     let ty = k.ty;
@@ -60,6 +72,20 @@ fn default_format_key(k: KeyArgs) -> String {
     format!("{the_description}{indent}{key}{ty}: {value}")
 }
 
+fn default_format_mapping(args: InnerArgs) -> String {
+    let line_break = if args.path.is_empty() {
+        ""
+    } else {
+        // If not at top-level, need to add a leading \n
+        "\n"
+    };
+    format!("{line_break}{}", args.inner.join("\n"))
+}
+
+fn default_format_list(args: InnerArgs) -> String {
+    format!("[{}]", args.inner.join(", "))
+}
+
 
 /// Contains the option for documenting YAML
 pub struct Documenter<'d,> {
@@ -67,6 +93,8 @@ pub struct Documenter<'d,> {
     description_field: &'d str,
     type_name: &'d dyn Fn(&ValueType) -> String,
     format_key: &'d dyn Fn(KeyArgs) -> String,
+    format_mapping: &'d dyn Fn(InnerArgs) -> String,
+    format_list: &'d dyn Fn(InnerArgs) -> String,
 }
 
 impl<'d> Documenter<'d> {
@@ -83,6 +111,8 @@ impl<'d> Documenter<'d> {
             description_field: DESCRIPTION,
             type_name: &ValueType::to_str,
             format_key: &default_format_key,
+            format_mapping: &default_format_mapping,
+            format_list: &default_format_list,
         }
     }
 
@@ -187,12 +217,11 @@ impl<'d> Documenter<'d> {
 
 
     fn document_val(&self, val: &Value, description: Option<&Value>, struct_path: &mut Vec<String>) -> error::Result<String> {
+        let indent = self.indent_str(struct_path);
+
         match val {
             Value::Mapping(ref m) => {
                 let mut list = vec![];
-                if struct_path.len() > 0 {
-                    list.push("".to_owned()); // ???????
-                }
 
                 for (key, value) in m.iter() {
                     let ty = match value {
@@ -240,14 +269,19 @@ impl<'d> Documenter<'d> {
 
                     let key_args = KeyArgs {yaml_value: value,
                                             path: struct_path,
-                                            indent: &self.indent_str(struct_path),
+                                            indent: &indent,
                                             key: &k,
                                             description: the_description,
                                             ty: &(*self.type_name)(&ty),
                                             value: &v};
                     list.push((*self.format_key)(key_args));
                 }
-                Ok(list.join("\n"))
+                let args = InnerArgs {
+                    inner: &list,
+                    path: struct_path,
+                    indent: &indent,
+                };
+                Ok((*self.format_mapping)(args))
             },
             Value::Sequence(ref s) => {
                 struct_path.push("-".to_owned());
@@ -256,8 +290,12 @@ impl<'d> Documenter<'d> {
                     list.push(self.document_val(v, None, struct_path)?);
                 }
                 struct_path.pop();
-                Ok(format!("[{content}]",
-                                          content = list.join(", ")))
+                let args = InnerArgs {
+                    inner: &list,
+                    path: struct_path,
+                    indent: &indent,
+                };
+                Ok((*self.format_list)(args))
             },
             Value::Bool(b) => { Ok(format!("{b}")) },
             Value::String(ref s) => { Ok(format!("{s}")) },
