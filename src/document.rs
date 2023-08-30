@@ -57,7 +57,7 @@ fn default_format_key(k: KeyArgs) -> String {
     } else {
         "".to_owned()
     };
-    format!("\n{the_description}{indent}{key}{ty}: {value}")
+    format!("{the_description}{indent}{key}{ty}: {value}")
 }
 
 
@@ -187,12 +187,13 @@ impl<'d> Documenter<'d> {
 
 
     fn document_val(&self, val: &Value, description: Option<&Value>, struct_path: &mut Vec<String>) -> error::Result<String> {
-        let mut content = String::new();
         match val {
             Value::Mapping(ref m) => {
+                let mut list = vec![];
                 if struct_path.len() > 0 {
-//                    content.push_str("\n"); //???
+                    list.push("".to_owned()); // ???????
                 }
+
                 for (key, value) in m.iter() {
                     let ty = match value {
                         Value::Null => ValueType::Null,
@@ -244,8 +245,9 @@ impl<'d> Documenter<'d> {
                                             description: the_description,
                                             ty: &(*self.type_name)(&ty),
                                             value: &v};
-                    content.push_str(&(*self.format_key)(key_args));
+                    list.push((*self.format_key)(key_args));
                 }
+                Ok(list.join("\n"))
             },
             Value::Sequence(ref s) => {
                 struct_path.push("-".to_owned());
@@ -254,22 +256,23 @@ impl<'d> Documenter<'d> {
                     list.push(self.document_val(v, None, struct_path)?);
                 }
                 struct_path.pop();
-                content.push_str(&format!("[{content}]",
-                                          content = list.join(", ")));
+                Ok(format!("[{content}]",
+                                          content = list.join(", ")))
             },
-            Value::Bool(b) => { content.push_str(&format!("{b}")); },
-            Value::String(ref s) => { content.push_str(&format!("{s}")); },
-            Value::Null => { content.push_str("Null"); },
-            Value::Tagged(ref t) => { content.push_str(&self.document_val(&t.value, description, struct_path)?); },
+            Value::Bool(b) => { Ok(format!("{b}")) },
+            Value::String(ref s) => { Ok(format!("{s}")) },
+            Value::Null => { Ok("Null".to_owned()) },
+            Value::Tagged(ref t) => { self.document_val(&t.value, description, struct_path) },
             Value::Number(ref n) => {
                 if let Some(i) = n.as_i64() {
-                    content.push_str(&format!("{i}"));
+                    Ok(format!("{i}"))
                 } else if let Some(f) = n.as_f64() {
-                    content.push_str(&format!("{f}"));
+                    Ok(format!("{f}"))
+                } else {
+                    unreachable!{};
                 }
             }
         }
-        Ok(content)    
     }
 
 
