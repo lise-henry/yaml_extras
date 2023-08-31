@@ -1,8 +1,8 @@
 # Changelog
 
-## unreleased
+## 0.2.0 (2023-09-01)
 
-* Add document function
+* Add `Documenter` 
 * Refactoring: instead of directly calling a function, use `Restructurer::new().from_str`
  or `Restructurer::new().apply_to_value(...)`
 
