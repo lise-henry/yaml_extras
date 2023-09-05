@@ -27,3 +27,29 @@ pub fn merge(value: &mut Value, other: &Value) -> Result<()> {
     }
     return Err(Error::Merge(format!("both arguments need to be mapping, found {:?} and {:?}", value, other))); 
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use pretty_assertions::{assert_eq, assert_ne};
+
+    #[test]
+    fn merge_simple() {
+        let y1 = r#"
+foo: 42"#;
+        let y2 = r#"
+bar: true"#;
+
+        let expected = r#"
+foo: 42
+bar: true"#;
+
+        let mut actual: Value = serde_yaml::from_str(y1).unwrap();
+        let v2: Value = serde_yaml::from_str(y2).unwrap();
+        let expected: Value = serde_yaml::from_str(expected).unwrap();
+
+        merge(&mut actual, &v2).unwrap();
+
+        assert_eq!(actual, expected);
+    }
+}
