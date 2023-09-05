@@ -45,10 +45,11 @@
 
 mod error;
 mod restructure;
+mod merge;
 
 pub mod document;
 
 pub use error::{Result, Error};
 pub use restructure::Restructurer;
 pub use document::Documenter;
-
+pub use merge::merge;
