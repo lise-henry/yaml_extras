@@ -6,6 +6,8 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum Error {
+    #[error("impossible to mege YAML values: {0}")]
+    Merge(String),
     #[error("impossible to restructure YAML map: {0}")]
     Restructure(String),
     #[error("YAML error")]
